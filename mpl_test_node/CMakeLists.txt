@@ -63,7 +63,8 @@ cs_add_executable(distance_map_planner_node src/distance_map_planner_node.cpp)
 target_link_libraries(distance_map_planner_node ${MOTION_PRIMITIVE_LIBRARY_LIBRARIES})
 
 if(COMPILE_ELLIPSOID_PLANNER_NODE)
-cs_add_executable(ellipsoid_planner_node src/ellipsoid_planner_node.cpp)
+cs_add_executable(ellipsoid_planner_node src/ellipsoid_planner_node.cpp
+        src/tinyply.cpp)
 target_link_libraries(ellipsoid_planner_node ${MOTION_PRIMITIVE_LIBRARY_LIBRARIES} ${Open3D_LIBRARIES} OpenMP::OpenMP_CXX)
 endif()
 

@@ -2,16 +2,173 @@
 #include <mpl_external_planner/ellipsoid_planner/ellipsoid_planner.h>
 #include <planning_ros_utils/data_ros_utils.h>
 #include <planning_ros_utils/primitive_ros_utils.h>
-#include "planning_ros_utils/trajectory_writer.h"
 #include <ros/ros.h>
+#include "planning_ros_utils/trajectory_writer.h"
 //#include <sensor_msgs/PointCloud.h>
 //#include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud_conversion.h>
 
 // open3d_conversions
+#include "example-utils.hpp"
 #include "open3d_conversions/open3d_conversions.h"
+#include "tinyply.h"
 
 #include "bag_reader.hpp"
+
+void parse_pointcloud(const std::string pointcloud_filename, open3d::geometry::PointCloud* o3d_pointcloud) {
+  std::ifstream csvFile;
+  csvFile.open(pointcloud_filename.c_str());
+
+  if (!csvFile.is_open()) {
+    std::cout << "Path Wrong!!!!" << std::endl;
+    std::cout << pointcloud_filename << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  open3d::geometry::PointCloud pointcloud;
+
+  ////////////////////////////////////
+  //  std::cout <<
+  //  "..............................................................."
+  //               ".........\n";
+  std::cout << "Now Reading: " << pointcloud_filename << std::endl;
+
+  std::unique_ptr<std::istream> file_stream;
+  std::vector<uint8_t> byte_buffer;
+  Eigen::MatrixXd points_eigen;
+  std::vector<Eigen::Vector3d> points_vec;
+
+  try {
+    // For most files < 1gb, pre-loading the entire file upfront and wrapping it
+    // into a stream is a net win for parsing speed, about 40% faster.
+    bool preload_into_memory = true;
+    if (preload_into_memory) {
+      byte_buffer = read_file_binary(pointcloud_filename);
+      file_stream.reset(
+          new memory_stream((char *)byte_buffer.data(), byte_buffer.size()));
+    } else {
+      file_stream.reset(
+          new std::ifstream(pointcloud_filename, std::ios::binary));
+    }
+
+    if (!file_stream || file_stream->fail())
+      throw std::runtime_error("file_stream failed to open " +
+                               pointcloud_filename);
+
+    file_stream->seekg(0, std::ios::end);
+    const float size_mb = file_stream->tellg() * float(1e-6);
+    file_stream->seekg(0, std::ios::beg);
+
+    PlyFile file;
+    file.parse_header(*file_stream);
+
+    // Because most people have their own mesh types, tinyply treats parsed data
+    // as structured/typed byte buffers. See examples below on how to marry your
+    // own application-specific data structures with this one.
+    std::shared_ptr<PlyData> vertices, normals, colors, texcoords, faces,
+        tripstrip;
+
+    // The header information can be used to programmatically extract properties
+    // on elements known to exist in the header prior to reading the data. For
+    // brevity of this sample, properties like vertex position are hard-coded:
+    try {
+      vertices =
+          file.request_properties_from_element("vertex", {"x", "y", "z"});
+    } catch (const std::exception &e) {
+      //      std::cerr << "tinyply exception: " << e.what() << std::endl;
+    }
+
+    try {
+      normals =
+          file.request_properties_from_element("vertex", {"nx", "ny", "nz"});
+    } catch (const std::exception &e) {
+      //      std::cerr << "tinyply exception: " << e.what() << std::endl;
+    }
+
+    try {
+      colors = file.request_properties_from_element(
+          "vertex", {"red", "green", "blue", "alpha"});
+    } catch (const std::exception &e) {
+      //      std::cerr << "tinyply exception: " << e.what() << std::endl;
+    }
+
+    try {
+      colors =
+          file.request_properties_from_element("vertex", {"r", "g", "b", "a"});
+    } catch (const std::exception &e) {
+      //      std::cerr << "tinyply exception: " << e.what() << std::endl;
+    }
+
+    try {
+      texcoords = file.request_properties_from_element("vertex", {"u", "v"});
+    } catch (const std::exception &e) {
+      //      std::cerr << "tinyply exception: " << e.what() << std::endl;
+    }
+
+    // Providing a list size hint (the last argument) is a 2x performance
+    // improvement. If you have arbitrary ply files, it is best to leave this 0.
+    try {
+      faces =
+          file.request_properties_from_element("face", {"vertex_indices"}, 3);
+    } catch (const std::exception &e) {
+      //      std::cerr << "tinyply exception: " << e.what() << std::endl;
+    }
+
+    // Tristrips must always be read with a 0 list size hint (unless you know
+    // exactly how many elements are specifically in the file, which is
+    // unlikely);
+    try {
+      tripstrip = file.request_properties_from_element("tristrips",
+                                                       {"vertex_indices"}, 0);
+    } catch (const std::exception &e) {
+      //      std::cerr << "tinyply exception: " << e.what() << std::endl;
+    }
+
+    manual_timer read_timer;
+
+    read_timer.start();
+    file.read(*file_stream);
+    read_timer.stop();
+
+    const float parsing_time = read_timer.get() / 1000.f;
+    std::cout << "\tparsing " << size_mb << "mb in " << parsing_time
+              << " seconds [" << (size_mb / parsing_time) << " MBps]"
+              << std::endl;
+
+    const size_t numVerticesBytes = vertices->buffer.size_bytes();
+    std::vector<float3> verts(vertices->count);
+    std::memcpy(verts.data(), vertices->buffer.get(), numVerticesBytes);
+
+    int idx = 0;
+    for (auto point_tinyply : verts) {
+      if (idx == 0) {
+        points_eigen = Eigen::Vector3d(static_cast<double>(point_tinyply.x),
+                                       static_cast<double>(point_tinyply.y),
+                                       static_cast<double>(point_tinyply.z));
+      } else {
+        points_eigen.conservativeResize(points_eigen.rows(),
+                                        points_eigen.cols() + 1);
+        points_eigen.col(points_eigen.cols() - 1) =
+            Eigen::Vector3d(static_cast<double>(point_tinyply.x),
+                            static_cast<double>(point_tinyply.y),
+                            static_cast<double>(point_tinyply.z));
+      }
+      points_vec.push_back(
+          Eigen::Vector3d(static_cast<double>(point_tinyply.x),
+                          static_cast<double>(point_tinyply.y),
+                          static_cast<double>(point_tinyply.z)));
+      idx += 1;
+    }
+  } catch (const std::exception &e) {
+    std::cerr << "Caught tinyply exception: " << e.what() << std::endl;
+  }
+
+//  kd_tree_.SetMatrixData(points_eigen);
+
+  *o3d_pointcloud = open3d::geometry::PointCloud(points_vec);
+
+  std::cout << "Completed pointcloud parsing!" << std::endl;
+}
 
 int main(int argc, char **argv) {
   ros::Time::init();
@@ -38,7 +195,11 @@ int main(int argc, char **argv) {
   // TODO: change here to load pointcloud
   sensor_msgs::PointCloud2 ros_pc2;
   open3d::geometry::PointCloud o3d_pc;
-  open3d::io::ReadPointCloud("/home/tony/Projects/robust_flight/plan_ws/src/plan_and_stuff/planner_learning/data/forest/circle_5ms/test/rollout_20-10-06_11-47-50/pointcloud-unity.ply", o3d_pc);
+  //  open3d::io::ReadPointCloud("/home/tony/Projects/robust_flight/plan_ws/src/plan_and_stuff/planner_learning/data/forest/circle_5ms/test/rollout_20-10-06_11-47-50/pointcloud-unity.ply",
+  //  o3d_pc);
+  std::string pc_filename = "/home/elia/code/catkin_planning/src/plan_and_stuff/data_generation/data/rollout_20-10-06_12-03-46/pointcloud-unity.ply";
+  parse_pointcloud(pc_filename, &o3d_pc);
+
   open3d_conversions::open3dToRos(o3d_pc, ros_pc2, "o3d_frame");
   sensor_msgs::PointCloud map;
   map.header.stamp = ros::Time::now();
@@ -46,7 +207,7 @@ int main(int argc, char **argv) {
   if (!success) {
     printf("PointCloud loading failed");
   }
-  //sensor_msgs::PointCloud map =
+  // sensor_msgs::PointCloud map =
   //    read_bag<sensor_msgs::PointCloud>(file_name, topic_name, 0).back();
   cloud_pub.publish(map);
 
@@ -198,8 +359,8 @@ int main(int argc, char **argv) {
     planning_ros_msgs::Trajectory traj_msg = toTrajectoryROSMsg(traj);
     traj_msg.header.frame_id = "map";
     traj_pub.publish(traj_msg);
-    trajectory_writer::saveTrajectorytoCSV("/tmp/trajectory.csv",
-                                           traj_msg, 0.02);
+    trajectory_writer::saveTrajectorytoCSV("/tmp/trajectory.csv", traj_msg,
+                                           0.02);
 
     printf(
         "================== Traj -- total J(VEL): %f, J(ACC): %F, J(JRK): %f, "
