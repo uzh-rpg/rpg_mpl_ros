@@ -37,3 +37,4 @@ class TrajectoryExtractor {
  private:
   std::vector<planning_ros_msgs::TrajectoryCommand> cmd_array_;
 };
+

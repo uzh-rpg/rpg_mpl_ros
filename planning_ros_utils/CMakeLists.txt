@@ -63,6 +63,7 @@ set(SOURCE_FILES
   src/planning_rviz_plugins/path_array_display.cpp
   src/planning_rviz_plugins/primitive_array_display.cpp
   src/planning_rviz_plugins/trajectory_display.cpp
+  src/trajectory_writer.cpp
   ${MOC_FILES})
 
 cs_add_library(planning_rviz_plugins ${SOURCE_FILES})

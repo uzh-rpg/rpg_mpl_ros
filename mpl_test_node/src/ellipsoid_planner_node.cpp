@@ -2,11 +2,19 @@
 #include <mpl_external_planner/ellipsoid_planner/ellipsoid_planner.h>
 #include <planning_ros_utils/data_ros_utils.h>
 #include <planning_ros_utils/primitive_ros_utils.h>
+#include "planning_ros_utils/trajectory_writer.h"
 #include <ros/ros.h>
+//#include <sensor_msgs/PointCloud.h>
+//#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud_conversion.h>
+
+// open3d_conversions
+#include "open3d_conversions/open3d_conversions.h"
 
 #include "bag_reader.hpp"
 
 int main(int argc, char **argv) {
+  ros::Time::init();
   ros::init(argc, argv, "test");
   ros::NodeHandle nh("~");
 
@@ -27,8 +35,19 @@ int main(int argc, char **argv) {
   std::string file_name, topic_name;
   nh.param("file", file_name, std::string("voxel_map"));
   nh.param("topic", topic_name, std::string("voxel_map"));
-  sensor_msgs::PointCloud map =
-      read_bag<sensor_msgs::PointCloud>(file_name, topic_name, 0).back();
+  // TODO: change here to load pointcloud
+  sensor_msgs::PointCloud2 ros_pc2;
+  open3d::geometry::PointCloud o3d_pc;
+  open3d::io::ReadPointCloud("/home/tony/Projects/robust_flight/plan_ws/src/plan_and_stuff/planner_learning/data/forest/circle_5ms/test/rollout_20-10-06_11-47-50/pointcloud-unity.ply", o3d_pc);
+  open3d_conversions::open3dToRos(o3d_pc, ros_pc2, "o3d_frame");
+  sensor_msgs::PointCloud map;
+  map.header.stamp = ros::Time::now();
+  bool success = sensor_msgs::convertPointCloud2ToPointCloud(ros_pc2, map);
+  if (!success) {
+    printf("PointCloud loading failed");
+  }
+  //sensor_msgs::PointCloud map =
+  //    read_bag<sensor_msgs::PointCloud>(file_name, topic_name, 0).back();
   cloud_pub.publish(map);
 
   double robot_radius;
@@ -179,6 +198,8 @@ int main(int argc, char **argv) {
     planning_ros_msgs::Trajectory traj_msg = toTrajectoryROSMsg(traj);
     traj_msg.header.frame_id = "map";
     traj_pub.publish(traj_msg);
+    trajectory_writer::saveTrajectorytoCSV("/tmp/trajectory.csv",
+                                           traj_msg, 0.02);
 
     printf(
         "================== Traj -- total J(VEL): %f, J(ACC): %F, J(JRK): %f, "
