@@ -193,22 +193,21 @@ int main(int argc, char **argv) {
   nh.param("file", file_name, std::string("voxel_map"));
   nh.param("topic", topic_name, std::string("voxel_map"));
   // TODO: change here to load pointcloud
-  sensor_msgs::PointCloud2 ros_pc2;
-  open3d::geometry::PointCloud o3d_pc;
-  //  open3d::io::ReadPointCloud("/home/tony/Projects/robust_flight/plan_ws/src/plan_and_stuff/planner_learning/data/forest/circle_5ms/test/rollout_20-10-06_11-47-50/pointcloud-unity.ply",
-  //  o3d_pc);
-  std::string pc_filename = "/home/elia/code/catkin_planning/src/plan_and_stuff/data_generation/data/rollout_20-10-06_12-03-46/pointcloud-unity.ply";
-  parse_pointcloud(pc_filename, &o3d_pc);
+  //sensor_msgs::PointCloud2 ros_pc2;
+  //open3d::geometry::PointCloud o3d_pc;
+  //std::string pc_filename = "/home/elia/code/catkin_planning/src/plan_and_stuff/data_generation/data/rollout_20-10-06_12-03-46/pointcloud-unity.ply";
+  //std::string pc_filename = "/home/tony/Projects/robust_flight/plan_ws/src/plan_and_stuff/planner_learning/data/forest/circle_5ms/test/rollout_20-10-06_11-47-50/pointcloud-unity.ply";
+  //parse_pointcloud(pc_filename, &o3d_pc);
 
-  open3d_conversions::open3dToRos(o3d_pc, ros_pc2, "o3d_frame");
-  sensor_msgs::PointCloud map;
-  map.header.stamp = ros::Time::now();
-  bool success = sensor_msgs::convertPointCloud2ToPointCloud(ros_pc2, map);
-  if (!success) {
-    printf("PointCloud loading failed");
-  }
-  // sensor_msgs::PointCloud map =
-  //    read_bag<sensor_msgs::PointCloud>(file_name, topic_name, 0).back();
+  //open3d_conversions::open3dToRos(o3d_pc, ros_pc2, "o3d_frame");
+  //sensor_msgs::PointCloud map;
+  //map.header.stamp = ros::Time::now();
+  //bool success = sensor_msgs::convertPointCloud2ToPointCloud(ros_pc2, map);
+  //if (!success) {
+  //  printf("PointCloud loading failed");
+  //}
+  sensor_msgs::PointCloud map =
+     read_bag<sensor_msgs::PointCloud>(file_name, topic_name, 0).back();
   cloud_pub.publish(map);
 
   double robot_radius;
