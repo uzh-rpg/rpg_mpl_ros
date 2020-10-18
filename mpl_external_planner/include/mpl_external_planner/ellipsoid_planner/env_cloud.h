@@ -23,9 +23,11 @@ class env_cloud : public env_base<3> {
   /// Simple constructor
   env_cloud(const vec_Vec3f &obs, decimal_t r, const Vec3f &ori,
             const Vec3f &dim) {
+    std::printf("env_cloud\n");
     map_util_.reset(new EllipsoidUtil(r));
     map_util_->setObstacles(obs);
     map_util_->setBoundingBox(ori, dim);
+    std::printf("Done env_cloud\n");
   }
 
   ~env_cloud() {}

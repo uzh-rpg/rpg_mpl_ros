@@ -28,17 +28,21 @@ class EllipsoidUtil {
 
   /// Set obstacles
   void setObstacles(const vec_Vec3f &obs) {
+    std::printf("setObstacles\n");
     obs_.clear();
     for (const auto &it : obs) {
       if (bbox_.inside(it)) obs_.push_back(it);
     }
 
+    std::printf("obs.size() : %lu \n", obs_.size());
     PCLPointCloud::Ptr cloud_ptr =
         boost::make_shared<PCLPointCloud>(toPCL(obs_));
     kdtree_.setInputCloud(cloud_ptr);
+    std::printf("Done setObstacles\n");
   }
   /// Set bounding box
   void setBoundingBox(const Vec3f &ori, const Vec3f &dim) {
+    std::printf("setBoundingBox\n");
     Polyhedron3D Vs;
     Vs.add(
         Hyperplane3D(ori + Vec3f(0, dim(1) / 2, dim(2) / 2), -Vec3f::UnitX()));
@@ -53,6 +57,7 @@ class EllipsoidUtil {
     Vs.add(Hyperplane3D(ori + dim - Vec3f(dim(0) / 2, dim(1) / 2, 0),
                         Vec3f::UnitZ()));
     bbox_ = Vs;
+    std::printf("Done setBoundingBox\n");
   }
 
   /// Get polyhedra

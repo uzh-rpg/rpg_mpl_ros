@@ -29,7 +29,9 @@ class EllipsoidPlanner : public PlannerBase<3, Waypoint3D> {
   /// Set map util
   void setMap(const vec_Vec3f &obs, decimal_t r, const Vec3f &ori,
               const Vec3f &dim) {
+    std::printf("setMap\n");
     ENV_.reset(new MPL::env_cloud(obs, r, ori, dim));
+    std::printf("Done setMap\n");
   }
 };
 }  // namespace MPL
