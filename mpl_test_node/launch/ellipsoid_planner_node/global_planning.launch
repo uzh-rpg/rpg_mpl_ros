@@ -1,0 +1,35 @@
+<launch>
+  <arg name="debug" default="false"/>
+  <arg name="max_num" default="-1"/>
+  <!--<arg name="debug_valgrind" default="false"/>-->
+
+  <arg name="prefix" value="" unless="$(arg debug)"/>
+  <arg name="prefix" value="gdb -ex run --args" if="$(arg debug)"/>
+
+  <arg name="data_dir" default="$(find expert_planner)/../data"/>
+
+  <node pkg="mpl_test_node"
+    type="ellipsoid_planner_node"
+    name="test_primitive"
+    launch-prefix="$(arg prefix)"
+    output="screen">
+    <remap from="~pose" to="/move_base_simple/goal"/>
+    <remap from="perform_planning" to="/hummingbird/expert_planner/compute_global_plan"/>
+    <param name="data_dir" value="$(arg data_dir)"/>
+    <param name="file" value="$(find mpl_test_node)/maps/office/office.bag"/>
+    <param name="topic" value="/cloud"/>
+    <!-- Set dynamic constraints -->
+    <param name="v_max" value="10.0"/>
+    <param name="a_max" value="10"/>
+    <param name="u_max" value="60.0"/>
+    <!--<param name="t_max" value="$(eval dt*10)"/>-->
+    <param name="t_max" value="-1"/>
+    <param name="use_3d" value="false"/>
+    <param name="num" value="2"/>
+    <param name="w" value="10000"/>
+    <param name="epsilon" value="2"/>
+    <param name="max_num" value="$(arg max_num)"/>
+    <param name="robot_r" value="0.5"/>
+  </node>
+
+</launch>
