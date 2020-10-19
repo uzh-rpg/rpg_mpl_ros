@@ -67,7 +67,7 @@ void saveTrajectorytoCSV(const std::string& csv_filename,
     // clang-format off
       reference_trajectory_file.filestream
           << std::fixed
-          << std::setprecision(8) << (t0 + ros::Duration(ws[i].t)).toSec() << ","
+          << std::setprecision(8) << (ros::Duration(ws[i].t)).toSec() << ","
           << std::setprecision(8) << ws[i].pos(0) << ","
           << std::setprecision(8) << ws[i].pos(1) << ","
           << std::setprecision(8) << ws[i].pos(2) << ","

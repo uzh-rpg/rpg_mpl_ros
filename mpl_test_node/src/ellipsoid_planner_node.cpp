@@ -220,6 +220,10 @@ void EllipsoidWrapper::performPlanningCallback(
     ROS_WARN(
         "Currently only supports single rollout folders! Delete pre-existing "
         "rollout folders!");
+    // we only use the last directory
+    ROS_INFO("num of directories: %lu", directories.size());
+    directories.erase(directories.begin(), directories.end() - 1);
+    ROS_INFO("num of directories: %lu", directories.size());
   }
   quadrotor_common::Trajectory reference_trajectory;
 
@@ -275,7 +279,7 @@ void EllipsoidWrapper::performPlanningCallback(
     ROS_INFO("Pointcloud contains %lu points.", map.points.size());
 
     double robot_radius;
-    robot_radius = 0.5;
+    robot_radius = 0.7;
     Vec3f origin, dim;
     Eigen::Vector3d padding = 5.0 * Eigen::Vector3d::Ones();
     origin(0) =
@@ -437,7 +441,7 @@ void EllipsoidWrapper::performPlanningCallback(
           traj.getTotalTime());
 
       vec_E<Ellipsoid3D> Es =
-          sample_ellipsoids(traj, Vec3f(robot_radius, robot_radius, 0.1), 50);
+          sample_ellipsoids(traj, Vec3f(robot_radius, robot_radius, 0.5), 50);
       decomp_ros_msgs::EllipsoidArray es_msg =
           DecompROS::ellipsoid_array_to_ros(Es);
       es_msg.header.frame_id = "world";
