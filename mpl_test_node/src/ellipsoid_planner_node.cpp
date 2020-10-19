@@ -369,7 +369,7 @@ void EllipsoidWrapper::performPlanningCallback(
 
     Waypoint3D goal(start.control);
     goal.pos = Vec3f(goal_x, goal_y, goal_z);
-    goal.vel = Vec3f(0, 0, 0);
+    goal.vel = Vec3f(10, 0, 0);
     goal.acc = Vec3f(0, 0, 0);
     goal.jrk = Vec3f(0, 0, 0);
 
