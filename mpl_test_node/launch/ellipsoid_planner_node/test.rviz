@@ -175,8 +175,8 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.10000000149011612
-      Style: Points
+      Size (m): 0.20000000298023224
+      Style: Spheres
       Topic: /test_primitive/cloud
       Unreliable: false
       Use Fixed Frame: true
@@ -210,25 +210,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 26.253284454345703
+      Distance: 60.6771354675293
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.207862615585327
-        Y: -1.0490665435791016
+        X: 2.445854902267456
+        Y: -15.300625801086426
         Z: 6.6468478507886175e-6
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7247976064682007
+      Pitch: 0.6997978687286377
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 3.131760597229004
+      Yaw: 3.4467761516571045
     Saved: ~
 Window Geometry:
   Displays:
@@ -246,5 +246,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1853
-  X: 67
-  Y: 27
+  X: 1147
+  Y: 525
