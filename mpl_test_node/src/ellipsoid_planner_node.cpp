@@ -279,7 +279,7 @@ void EllipsoidWrapper::performPlanningCallback(
     ROS_INFO("Pointcloud contains %lu points.", map.points.size());
 
     double robot_radius;
-    robot_radius = 0.7;
+    robot_radius = 1.0;
     Vec3f origin, dim;
     Eigen::Vector3d padding = 5.0 * Eigen::Vector3d::Ones();
     origin(0) =
@@ -441,7 +441,7 @@ void EllipsoidWrapper::performPlanningCallback(
           traj.getTotalTime());
 
       vec_E<Ellipsoid3D> Es =
-          sample_ellipsoids(traj, Vec3f(robot_radius, robot_radius, 0.5), 50);
+          sample_ellipsoids(traj, Vec3f(robot_radius, robot_radius, 0.7), 50);
       decomp_ros_msgs::EllipsoidArray es_msg =
           DecompROS::ellipsoid_array_to_ros(Es);
       es_msg.header.frame_id = "world";
