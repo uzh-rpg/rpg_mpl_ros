@@ -279,7 +279,7 @@ void EllipsoidWrapper::performPlanningCallback(
     ROS_INFO("Pointcloud contains %lu points.", map.points.size());
 
     double robot_radius;
-    robot_radius = 1.0;
+    robot_radius = 1.2;
     Vec3f origin, dim;
     Eigen::Vector3d padding = 5.0 * Eigen::Vector3d::Ones();
     origin(0) =
@@ -305,7 +305,7 @@ void EllipsoidWrapper::performPlanningCallback(
     bool use_3d;
     dt = 0.2;
     epsilon = 2.0;
-    v_max = 10.0;
+    v_max = 12.0;
     a_max = 10.0;
     u_max = 60.0;
     u_max_z = 1.0;
