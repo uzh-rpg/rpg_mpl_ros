@@ -279,7 +279,7 @@ void EllipsoidWrapper::performPlanningCallback(
     ROS_INFO("Pointcloud contains %lu points.", map.points.size());
 
     double robot_radius;
-    robot_radius = 1.2;
+    robot_radius = 1.0;
     Vec3f origin, dim;
     Eigen::Vector3d padding = 5.0 * Eigen::Vector3d::Ones();
     origin(0) =
@@ -305,14 +305,14 @@ void EllipsoidWrapper::performPlanningCallback(
     bool use_3d;
     dt = 0.2;
     epsilon = 2.0;
-    v_max = 12.0;
+    v_max = 10.0;
     a_max = 10.0;
     u_max = 60.0;
     u_max_z = 1.0;
     w = 10000.0;
     num = 2;
     max_num = -1;
-    use_3d = false;
+    use_3d = true;
 
     ROS_INFO("Initiating planner...");
     std::unique_ptr<MPL::EllipsoidPlanner> planner_;
@@ -333,7 +333,7 @@ void EllipsoidWrapper::performPlanningCallback(
     planner_->setW(w);              // Set time weight for each primitive
     planner_->setMaxNum(
         max_num);  // Set maximum allowed expansion, -1 means no limitation
-    planner_->setTol(2.0, 2.0,
+    planner_->setTol(5.0, 100.0,
                      100.0);  // Tolerance for goal region as pos, vel, acc
 
     // Set start and goal
@@ -353,7 +353,7 @@ void EllipsoidWrapper::performPlanningCallback(
 
     // magic parameters are copied from original launch file
     bool use_acc, use_jrk;
-    use_acc = true;
+    use_acc = false;
     use_jrk = false;
 
     Waypoint3D start;
@@ -381,10 +381,6 @@ void EllipsoidWrapper::performPlanningCallback(
     pt2.x = goal_x, pt2.y = goal_y, pt2.z = goal_z;
     sg_cloud.points.push_back(pt1), sg_cloud.points.push_back(pt2);
     start_goal_pub_.publish(sg_cloud);
-
-    // Read prior traj
-    ROS_INFO("Reading prior trajectory...");
-    std::string traj_file_name, traj_topic_name;
 
     // Set input control
     vec_E<VecDf> U;
