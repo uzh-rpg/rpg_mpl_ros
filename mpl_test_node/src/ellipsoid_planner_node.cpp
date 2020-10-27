@@ -311,7 +311,7 @@ void EllipsoidWrapper::performPlanningCallback(
     u_max_z = 1.0;
     w = 10000.0;
     num = 2;
-    max_num = -1;
+    max_num = 300000;
     use_3d = true;
 
     ROS_INFO("Initiating planner...");
