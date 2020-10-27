@@ -303,7 +303,7 @@ void EllipsoidWrapper::performPlanningCallback(
     double u_max_z, u_max;
     int max_num, num;
     bool use_3d;
-    dt = 0.2;
+    dt = 0.25;
     epsilon = 2.0;
     v_max = 10.0;
     a_max = 10.0;
@@ -394,7 +394,7 @@ void EllipsoidWrapper::performPlanningCallback(
     start_goal_pub_.publish(sg_cloud);
 
 
-    use_prior = true;
+    bool use_prior = true;
 
     if (use_prior) {
       t0 = ros::Time::now();
@@ -413,12 +413,16 @@ void EllipsoidWrapper::performPlanningCallback(
                  (ros::Time::now() - t0).toSec(), planner_->getCloseSet().size());
       }
 
-      // get prior trajectory
+      // get prior trajectory and publish it
       auto prior_traj = planner_->getTraj();
       planner_->setPriorTrajectory(prior_traj);
+      planning_ros_msgs::Trajectory traj_msg = toTrajectoryROSMsg(prior_traj);
+      traj_msg.header.frame_id = "world";
+      traj_pub_.publish(traj_msg);
 
       // set parameters to look for the refined trajectory
       start.use_acc = true;
+      start.use_jrk = false;
       goal.use_acc = false;
       goal.use_jrk = false;
     }
@@ -467,7 +471,6 @@ void EllipsoidWrapper::performPlanningCallback(
     std_msgs::Bool true_msg;
     true_msg.data = true;
     completed_planning_pub_.publish(true_msg);
-    }
   }
 }
 
