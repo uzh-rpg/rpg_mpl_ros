@@ -3,21 +3,21 @@
 #include <experimental/filesystem>
 
 #include "ros/ros.h"
-#include "std_msgs/Bool.h"
+#include "std_msgs/Float32.h"
 
 namespace fs = std::experimental::filesystem;
 
 class EllipsoidWrapper {
- public:
-  EllipsoidWrapper(const ros::NodeHandle& nh, const ros::NodeHandle& pnh);
+public:
+  EllipsoidWrapper(const ros::NodeHandle &nh, const ros::NodeHandle &pnh);
 
   EllipsoidWrapper()
       : EllipsoidWrapper(ros::NodeHandle(), ros::NodeHandle("~")) {}
 
   virtual ~EllipsoidWrapper();
 
- private:
-  void performPlanningCallback(const std_msgs::BoolConstPtr& msg);
+private:
+  void performPlanningCallback(const std_msgs::Float32ConstPtr &max_speed);
 
   bool loadParameters();
   ros::NodeHandle nh_;
@@ -32,5 +32,5 @@ class EllipsoidWrapper {
 
   std::string data_dir_;
 
-  std::vector<std::string> getDirectories(const std::string& s);
+  std::vector<std::string> getDirectories(const std::string &s);
 };

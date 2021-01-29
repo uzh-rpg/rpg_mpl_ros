@@ -1,16 +1,18 @@
+#include "planning_ros_utils/trajectory_writer.h"
 #include <decomp_ros_utils/data_ros_utils.h>
 #include <mpl_external_planner/ellipsoid_planner/ellipsoid_planner.h>
 #include <planning_ros_utils/data_ros_utils.h>
 #include <planning_ros_utils/primitive_ros_utils.h>
 #include <ros/ros.h>
-#include "planning_ros_utils/trajectory_writer.h"
 //#include <sensor_msgs/PointCloud.h>
 //#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/point_cloud_conversion.h>
-#include <experimental/filesystem>
 #include "ellipsoid_planner_node.hpp"
 #include "plan_and_stuff_utils/generate_reference.h"
 #include "quadrotor_common/trajectory.h"
+#include <experimental/filesystem>
+#include <sensor_msgs/point_cloud_conversion.h>
+#include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 
 // open3d_conversions
 #include "example-utils.hpp"
@@ -211,7 +213,7 @@ EllipsoidWrapper::EllipsoidWrapper(const ros::NodeHandle &nh,
 EllipsoidWrapper::~EllipsoidWrapper() {}
 
 void EllipsoidWrapper::performPlanningCallback(
-    const std_msgs::BoolConstPtr &msg) {
+    const std_msgs::Float32ConstPtr &max_speed) {
   printf("Performing planning for directory %s\n", data_dir_.c_str());
   ros::Duration(2.0).sleep();
   std::vector<std::string> directories = getDirectories(data_dir_);
@@ -279,9 +281,9 @@ void EllipsoidWrapper::performPlanningCallback(
     ROS_INFO("Pointcloud contains %lu points.", map.points.size());
 
     double robot_radius;
-    robot_radius = 1.0;
+    robot_radius = 0.3;
     Vec3f origin, dim;
-    Eigen::Vector3d padding = 5.0 * Eigen::Vector3d::Ones();
+    Eigen::Vector3d padding = 10.0 * Eigen::Vector3d::Ones();
     origin(0) =
         reference_trajectory.points.front().position.x() - 0.5 * padding.x();
     origin(1) =
@@ -305,14 +307,14 @@ void EllipsoidWrapper::performPlanningCallback(
     bool use_3d;
     dt = 0.2;
     epsilon = 2.0;
-    v_max = 10.0;
+    v_max = max_speed->data; // 12.0;
     a_max = 10.0;
     u_max = 60.0;
     u_max_z = 1.0;
     w = 10000.0;
     num = 2;
-    max_num = 300000;
-    use_3d = true;
+    max_num = -1;
+    use_3d = false;
 
     ROS_INFO("Initiating planner...");
     std::unique_ptr<MPL::EllipsoidPlanner> planner_;
@@ -324,17 +326,17 @@ void EllipsoidWrapper::performPlanningCallback(
     //  planner_->setMap(points_eigen, robot_radius, origin,
     //                   dim);          // Set collision checking function
     planner_->setMap(cloud_to_vec(map), robot_radius, origin,
-                     dim);  // Set collision checking function
+                     dim); // Set collision checking function
     ROS_INFO("epsilon: %.2f", epsilon);
-    planner_->setEpsilon(epsilon);  // Set greedy param (default equal to 1)
-    planner_->setVmax(v_max);       // Set max velocity
-    planner_->setAmax(a_max);       // Set max acceleration
-    planner_->setDt(dt);            // Set dt for each primitive
-    planner_->setW(w);              // Set time weight for each primitive
+    planner_->setEpsilon(epsilon); // Set greedy param (default equal to 1)
+    planner_->setVmax(v_max);      // Set max velocity
+    planner_->setAmax(a_max);      // Set max acceleration
+    planner_->setDt(dt);           // Set dt for each primitive
+    planner_->setW(w);             // Set time weight for each primitive
     planner_->setMaxNum(
-        max_num);  // Set maximum allowed expansion, -1 means no limitation
-    planner_->setTol(5.0, 100.0,
-                     100.0);  // Tolerance for goal region as pos, vel, acc
+        max_num); // Set maximum allowed expansion, -1 means no limitation
+    planner_->setTol(7.0, 100.0,
+                     100.0); // Tolerance for goal region as pos, vel, acc
 
     // Set start and goal
     ROS_INFO("Setting start and goal...");
@@ -353,7 +355,7 @@ void EllipsoidWrapper::performPlanningCallback(
 
     // magic parameters are copied from original launch file
     bool use_acc, use_jrk;
-    use_acc = false;
+    use_acc = true;
     use_jrk = false;
 
     Waypoint3D start;
@@ -382,6 +384,10 @@ void EllipsoidWrapper::performPlanningCallback(
     sg_cloud.points.push_back(pt1), sg_cloud.points.push_back(pt2);
     start_goal_pub_.publish(sg_cloud);
 
+    // Read prior traj
+    ROS_INFO("Reading prior trajectory...");
+    std::string traj_file_name, traj_topic_name;
+
     // Set input control
     vec_E<VecDf> U;
     const decimal_t du = u_max / num;
@@ -390,14 +396,14 @@ void EllipsoidWrapper::performPlanningCallback(
       for (decimal_t dx = -u_max; dx <= u_max; dx += du)
         for (decimal_t dy = -u_max; dy <= u_max; dy += du)
           for (decimal_t dz = -u_max_z; dz <= u_max_z;
-               dz += du_z)  // here we reduce the z control
+               dz += du_z) // here we reduce the z control
             U.push_back(Vec3f(dx, dy, dz));
     } else {
       for (decimal_t dx = -u_max; dx <= u_max; dx += du)
         for (decimal_t dy = -u_max; dy <= u_max; dy += du)
           U.push_back(Vec3f(dx, dy, 0));
     }
-    planner_->setU(U);  // Set discretization with 1 and efforts
+    planner_->setU(U); // Set discretization with 1 and efforts
     // planner_->setMode(num, use_3d, start); // Set discretization with 1 and
     // efforts
     // Planning thread!
@@ -429,15 +435,14 @@ void EllipsoidWrapper::performPlanningCallback(
       std::string global_traj_fname = directory + "/ellipsoid_trajectory.csv";
       trajectory_writer::saveTrajectorytoCSV(global_traj_fname, traj_msg, 0.02);
 
-      printf(
-          "================== Traj -- total J(VEL): %f, J(ACC): %F, J(JRK): "
-          "%f, "
-          "total time: %f\n",
-          traj.J(Control::VEL), traj.J(Control::ACC), traj.J(Control::SNP),
-          traj.getTotalTime());
+      printf("================== Traj -- total J(VEL): %f, J(ACC): %F, J(JRK): "
+             "%f, "
+             "total time: %f\n",
+             traj.J(Control::VEL), traj.J(Control::ACC), traj.J(Control::SNP),
+             traj.getTotalTime());
 
-      vec_E<Ellipsoid3D> Es =
-          sample_ellipsoids(traj, Vec3f(robot_radius, robot_radius, 0.7), 50);
+      vec_E<Ellipsoid3D> Es = sample_ellipsoids(
+          traj, Vec3f(robot_radius, robot_radius, 0.5 * robot_radius), 50);
       decomp_ros_msgs::EllipsoidArray es_msg =
           DecompROS::ellipsoid_array_to_ros(Es);
       es_msg.header.frame_id = "world";
@@ -453,8 +458,8 @@ void EllipsoidWrapper::performPlanningCallback(
   }
 }
 
-std::vector<std::string> EllipsoidWrapper::getDirectories(
-    const std::string &s) {
+std::vector<std::string>
+EllipsoidWrapper::getDirectories(const std::string &s) {
   std::vector<std::string> r;
   for (auto p = fs::recursive_directory_iterator(s);
        p != fs::recursive_directory_iterator(); ++p) {
@@ -473,7 +478,8 @@ std::vector<std::string> EllipsoidWrapper::getDirectories(
 }
 
 bool EllipsoidWrapper::loadParameters() {
-  if (!pnh_.getParam("data_dir", data_dir_)) return false;
+  if (!pnh_.getParam("data_dir", data_dir_))
+    return false;
 
   return true;
 }
