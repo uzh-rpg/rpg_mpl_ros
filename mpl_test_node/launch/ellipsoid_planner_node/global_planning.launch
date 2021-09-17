@@ -6,7 +6,7 @@
   <arg name="prefix" value="" unless="$(arg debug)"/>
   <arg name="prefix" value="gdb -ex run --args" if="$(arg debug)"/>
 
-  <arg name="data_dir" default="$(find expert_planner)/../data"/>
+  <arg name="data_dir" default="$(find agile_autonomy)/../data"/>
 
   <node pkg="mpl_test_node"
     type="ellipsoid_planner_node"
@@ -14,7 +14,7 @@
     launch-prefix="$(arg prefix)"
     output="screen">
     <remap from="~pose" to="/move_base_simple/goal"/>
-    <remap from="perform_planning" to="/hummingbird/expert_planner/compute_global_plan"/>
+    <remap from="perform_planning" to="/hummingbird/agile_autonomy/compute_global_plan"/>
     <param name="data_dir" value="$(arg data_dir)"/>
     <param name="file" value="$(find mpl_test_node)/maps/office/office.bag"/>
     <param name="topic" value="/cloud"/>

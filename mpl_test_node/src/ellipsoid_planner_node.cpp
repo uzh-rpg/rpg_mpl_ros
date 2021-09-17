@@ -450,7 +450,6 @@ void EllipsoidWrapper::performPlanningCallback(
 
       max_attitude(traj, 1000);
 
-      // completed planning, publish message to unblock expert_planner
       std_msgs::Bool true_msg;
       true_msg.data = true;
       completed_planning_pub_.publish(true_msg);
