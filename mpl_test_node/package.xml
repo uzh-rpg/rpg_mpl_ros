@@ -19,6 +19,6 @@
   <depend>planning_ros_utils</depend>
   <depend>open3d_conversions</depend>
   <depend>quadrotor_common</depend>
-  <depend>plan_and_stuff_utils</depend>
+  <depend>agile_autonomy_utils</depend>
 
 </package>
